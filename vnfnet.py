@@ -3,7 +3,7 @@
 # Dr. Anestis Dalgkitsis ✖️ | VNFnet2020 started 29 March 2020 | Last update of VNFnet2020: 23 Jan 2022
 
 # Python Modules
-
+import os
 import warnings
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -23,7 +23,11 @@ warnings.filterwarnings("ignore")
 
 logger = logging.getLogger(__name__)
 
-logging.basicConfig(filename='./VNFnetLog.log', level=logging.INFO, format='%(asctime)s - %(message)s')
+# create a log directory if it does not exist
+if not os.path.isdir('logs'):
+    os.mkdir('logs')
+
+logging.basicConfig(filename='./logs/VNFnetLog.log', level=logging.INFO, format='%(asctime)s - %(message)s')
 
 logger.info(" >>>> New VNFnet Session >>>>")
 
