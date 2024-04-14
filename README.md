@@ -2,11 +2,11 @@
 NFV-SDN Simulator
 
 Todo:
-- Replace microlog with Python's logging module.
-- Refactor code, split in multiple files.
-- Separate service graphs from instantiation.
-- Service Templates
-- Whitepaper.
+- [X] Replace microlog with Python's logging module.
+- [ ] Refactor code, split in multiple files.
+- [ ] Separate service graphs from instantiation.
+- [ ] Service Templates
+- [ ] Whitepaper.
 
 Versions:
 - Initial version v0 > Q2 2018
