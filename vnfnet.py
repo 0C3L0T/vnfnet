@@ -4,7 +4,6 @@
 
 # Python Modules
 
-import os
 import warnings
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -115,7 +114,7 @@ class Link:
                 del self.runningConnections[service]
                 return 0
 
-        logger.info("Connection to kill does not exist")  #: " + str(self.top()))
+        logger.warning("Connection to kill does not exist")  #: " + str(self.top()))
         return 1
 
     def top(self):
@@ -197,7 +196,7 @@ class Host:
                 del self.runningServices[service]
 
                 return 0
-        logger.info("[Host Alert] Service to terminate does not exist: ")  # + str(self.top()), flairs=["Host"])
+        logger.info("[Host Alert] Service to terminate does not exist: ")
         return 1
 
     def sampleEnergyConsumption(self):
@@ -423,8 +422,7 @@ class Network:
 
         error = hostObject.instantiateService(serviceObject)
         if (error):
-            logger.info("Error Instantiating Service VM in Host, check logfile. Err: " + str(error),
-                     flairs=["instantiateVM"])
+            logger.error("Error Instantiating Service VM in Host, check logfile. Err: " + str(error))
         # exit()
 
         self.topologyGraph.add_node(uid, uid=uid, label=title2, shapes="^")
@@ -437,7 +435,7 @@ class Network:
         hostObject = VMObject.host
         error = hostObject.killService(VMObject.service)
         if error:
-            logger.info("Error while terminating VM in host. Check the class code.", flairs=["terminateVM"])
+            logger.error("Error while terminating VM in host. Check the class code.")
             return False
 
         self.topologyGraph.remove_node(VMObject.uid)
@@ -452,7 +450,7 @@ class Network:
         # Discover connections to update
 
         if sourceHostObject == destinationHostObject:
-            logger.info("Source and destination hosts are the same.", flairs=["migrateVM"])
+            logger.warning("Source and destination hosts are the same.")
             return True
         for connection in self.trafficActivityList:
             if vm.host in connection.nodePath:
@@ -464,7 +462,7 @@ class Network:
             # self.stopTraffic(connection.userObject)
             er = self.stopTraffic(connection)
             if not er:
-                logger.info("Error in vm.stop(): " + str(er), flairs=["migrateVM"])
+                logger.error("Error in vm.stop(): " + str(er))
                 return False
 
         # Start traffic in new host (AM)
@@ -473,7 +471,7 @@ class Network:
             # self.startTraffic(connection.userObject)
             error = self.startTraffic(connection)
             if not error:
-                logger.info("Error migrating, could not start connection in new host.", flairs=["migrateVM"])
+                logger.error("Error migrating, could not start connection in new host.")
                 return False
 
         # Terminate VM instance in old host (BM)
@@ -481,13 +479,12 @@ class Network:
         # error = self.terminateVM(vm)
         error = sourceHostObject.killService(vm.service)
         if error:
-            logger.info("Error while terminating VM with uid " + str(vm.uid) + " in host with uid " + str(
-                sourceHostObject.uid) + ". VM not found in host.", flairs=["migrateVM"])
+            logger.error("Error while terminating VM with uid " + str(vm.uid) + " in host with uid " + str(
+                sourceHostObject.uid) + ". VM not found in host.")
             return False
         else:
             logger.info(
-                "VM with uid " + str(vm.uid) + " in host " + str(sourceHostObject.uid) + " terminated successfully.",
-                flairs=["migrateVM"])
+                "VM with uid " + str(vm.uid) + " in host " + str(sourceHostObject.uid) + " terminated successfully.")
             self.topologyGraph.remove_edge(vm.uid, sourceHostObject.uid)
 
         # Instantiate VM instance in new host (AM)
@@ -495,10 +492,10 @@ class Network:
         # self.instantiateVM(vm.service, destinationHostObject)
         error = destinationHostObject.instantiateService(vm.service)
         if (error):
-            logger.info("Error Instantiating Service VM in Host, check logfile. Err: " + str(error), flairs=["migrateVM"])
+            logger.error("Error Instantiating Service VM in Host, check logfile. Err: " + str(error))
         # exit()
         else:
-            logger.info("Service VM Instantiated.", flairs=["migrateVM"])
+            logger.info("Service VM Instantiated.")
             self.topologyGraph.add_edge(vm.uid, destinationHostObject.uid, uid=vm.uid, color='g', style="dashed",
                                         weight=1, length=12, delay=99999, bandwidth=0, loss=100)
 
@@ -506,7 +503,7 @@ class Network:
 
         vm.host = destinationHostObject
         logger.info("Migration successful. Info: " + str(vm.uid) + " (" + str(sourceHostObject.uid) + ")->-(" + str(
-            destinationHostObject.uid) + ").", flairs=["migrateVM"])
+            destinationHostObject.uid) + ").")
         return True
 
     # Traffic Flows Management
@@ -520,7 +517,7 @@ class Network:
             nodePath = nx.single_source_dijkstra(self.topologyGraph, userObject.uid,
                                                  userObject.userChain.chain[0].host.uid, weight='delay')
         except nx.NetworkXNoPath:
-            logger.info("except NetworkXNoPath")
+            logger.error("except NetworkXNoPath")
             return False
         chainNodePath.extend(nodePath[1])
         for n in range(len(userObject.userChain.chain) - 1):
@@ -533,11 +530,10 @@ class Network:
             chainNodePath.extend(nodePath[1])
         # logger.info("User with uid "+str(userObject.uid)+" has this host chain path: "+ str(chainNodePath), flairs=["createConnection"])
         logger.info(
-            "User uid " + str(userObject.uid) + " has this host chain path: " + str(chainNodePath) + " with this SC:",
-            flairs=["createConnection"])
+            "User uid " + str(userObject.uid) + " has this host chain path: " + str(chainNodePath) + " with this SC:")
         for h in range(len(userObject.userChain.chain)):
             logger.info(" |- VM [" + str(userObject.userChain.chain[h].uid) + "] in host (" + str(
-                userObject.userChain.chain[h].host.uid) + ")", flairs=["createConnection"])
+                userObject.userChain.chain[h].host.uid) + ")")
 
         # Allocate bandwidth on Links
 
@@ -550,7 +546,7 @@ class Network:
                 "Link uid: " + str(linkuid) + " bandwidth_after is " + str(bandwidthAfter) + " of connection (" + str(
                     chainNodePath[edge]) + ")-(" + str(chainNodePath[edge + 1]) + ").")
             if bandwidthAfter <= 0:
-                logger.info("Cannot create connection between nodes: " + str(chainNodePath[edge]) + " and " + str(
+                logger.warning("Cannot create connection between nodes: " + str(chainNodePath[edge]) + " and " + str(
                     chainNodePath[
                         edge + 1]) + ". ZERO OR NEGATIVE bandwidth AFTER TRAFFIC ASSIGNMENT. Adding link to suspended.")
                 self.suspendedLinks.append([chainNodePath[edge], chainNodePath[edge + 1],
@@ -604,7 +600,7 @@ class Network:
                 logger.info("suspended links <<rrXX>> dump: " + str(self.suspendedLinks))
                 # print(str(self.topologyGraph.number_of_edges())+"<><><2>")
 
-                logger.info("chainNodePath of user " + str(
+                logger.warning("chainNodePath of user " + str(
                     userObject.uid) + " COULD NOT BE DEFINED. No links with available bandwidth are connected to the destination node.")
 
                 return False  # Refuse service
@@ -629,10 +625,9 @@ class Network:
 
     def stopTraffic(self, connectionObject):
         if not connectionObject:
-            logger.info("Connection does not exist. Service was denied during request.", flairs=["stopTraffic"])
+            logger.warning("Connection does not exist. Service was denied during request.")
             return False
-        logger.info("stopTraffic(@args) >> connectionObject.nodePath: " + str(connectionObject.nodePath),
-                 flairs=["stopTraffic"])
+        logger.info("stopTraffic(@args) >> connectionObject.nodePath: " + str(connectionObject.nodePath))
         for edge in range(len(connectionObject.nodePath) - 1):
             linkAttributesJSON = self.topologyGraph.get_edge_data(connectionObject.nodePath[edge],
                                                                   connectionObject.nodePath[edge + 1])
@@ -652,17 +647,15 @@ class Network:
                 index += 1
             self.networkLinks[index].bandwidthUtil = bandwidthAfter
             # self.networkLinks[linkuid].bandwidthUtil = bandwidthAfter
-            logger.info("Traffic stopped in edge: " + str(connectionObject.nodePath[edge]), flairs=["stopTraffic"])
+            logger.info("Traffic stopped in edge: " + str(connectionObject.nodePath[edge]))
         self.trafficActivityList.remove(connectionObject)
-        logger.info("Traffic connection " + str(connectionObject.nodePath) + " stopped successfully.",
-                 flairs=["stopTraffic"])
+        logger.info("Traffic connection " + str(connectionObject.nodePath) + " stopped successfully.")
         return True
 
     def servicePing(self, connectionObject):
         if connectionObject == False:
-            logger.info(
-                "DURING SERVICEPING. THIS MESSAGE SHOULD NOT DISPLAY! Connection does not exist. Service was denied during request.",
-                flairs=["ERROR", "servicePing"])
+            logger.error(
+                "DURING SERVICEPING. THIS MESSAGE SHOULD NOT DISPLAY! Connection does not exist. Service was denied during request.")
             return 99999  # Denied flag
         logger.info("servicePing(@args) >> connectionObject.nodePath: " + str(connectionObject.nodePath))
         rtt = 0
@@ -676,9 +669,8 @@ class Network:
     def serviceData(self, connectionObject):
         # e.printl("Link Energy Stats:")
         if connectionObject == False:
-            logger.info(
-                "DURING SERVICEDATA. THIS MESSAGE SHOULD NOT DISPLAY! Connection does not exist. Service was denied during request.",
-                flairs=["ERROR", "serviceData"])
+            logger.error(
+                "DURING SERVICEDATA. THIS MESSAGE SHOULD NOT DISPLAY! Connection does not exist. Service was denied during request.")
             return -1  # Denied flag
         logger.info("serviceData(@args) >> connectionObject.nodePath: " + str(connectionObject.nodePath))
         # for edge in range(len(connectionObject.nodePath)-1):
@@ -728,9 +720,8 @@ class Network:
 
     def servicePerf(self, connectionObject):
         if connectionObject == False:
-            logger.info(
-                "DURING SERVICEPERF. THIS MESSAGE SHOULD NOT DISPLAY! Connection does not exist. Service was denied during request.",
-                flairs=["ERROR"])
+            logger.error(
+                "DURING SERVICEPERF. THIS MESSAGE SHOULD NOT DISPLAY! Connection does not exist. Service was denied during request.")
             return 0  # Denied flag
         logger.info("Starting SERVICE PERF of user " + str(connectionObject.userObject.uid))
         # for edge in range(len(connectionObject.nodePath)-1):
