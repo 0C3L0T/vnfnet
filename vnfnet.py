@@ -17,7 +17,6 @@ import matplotlib.pyplot as plt
 
 import logging
 
-
 # Suppress Warnings
 
 warnings.filterwarnings("ignore")
@@ -124,16 +123,9 @@ class Link:
             topConnectionsID.append(self.runningConnections[connection].id)
         return topConnectionsID
 
-    # def activity(self):
-    # 	return (self.bandwidthUtil/self.bandwidthCap)*100
 
     def sampleEnergyConsumption(self, datasize):  # bits
         linkConsuption = -self.opticalPowerTX * (datasize / self.bandwidthUtil * (10 ** -9))
-        # print(self.opticalPowerTX)
-        # print(datasize)
-        # print(self.bandwidthUtil * (10 ** 9))
-        # print(datasize / self.bandwidthUtil * (10 ** 9))
-        # print(">> sEC "+str(linkConsuption))
         return linkConsuption
 
 
@@ -201,7 +193,7 @@ class Host:
 
     def sampleEnergyConsumption(self):
         serverConsuption = self.CPUUtil * self.architectureEffectiveSwitchedCapacitance * self.cpuCyclesPerSampleData * self.bitsOverhead * (
-                    self.cpuFrequency ** 2)
+                self.cpuFrequency ** 2)
         return serverConsuption
 
 
@@ -243,12 +235,6 @@ class User:
 
         if self.trafficPattern == "saw":
             self.runtimeUserDatarate = abs(self.counter) % 10 * 0.1 * self.bandwidth
-
-        # if self.trafficPattern == "pulse":
-        # 	pass
-
-        # if self.trafficPattern == "reserved":
-        # 	self.runtimeUserDatarate = self.bandwidth
 
         self.counter += 1
 
@@ -327,9 +313,6 @@ class Network:
 
         self.topologyGraph.add_node(uid, uid=uid, label=name, shapes="v")
         logger.info("User with uid: " + str(uid) + " added.")
-
-        # if sla > self.maxNetSLA:
-        # 	self.maxNetSLA = sla
 
         return userObject
 
@@ -423,7 +406,6 @@ class Network:
         error = hostObject.instantiateService(serviceObject)
         if (error):
             logger.error("Error Instantiating Service VM in Host, check logfile. Err: " + str(error))
-        # exit()
 
         self.topologyGraph.add_node(uid, uid=uid, label=title2, shapes="^")
         self.topologyGraph.add_edge(uid, hostObject.uid, uid=uid, color='g', style="dashed", weight=1, length=12,
@@ -468,7 +450,6 @@ class Network:
         # Start traffic in new host (AM)
 
         for connection in connectionsWithThisHost:
-            # self.startTraffic(connection.userObject)
             error = self.startTraffic(connection)
             if not error:
                 logger.error("Error migrating, could not start connection in new host.")
@@ -476,7 +457,6 @@ class Network:
 
         # Terminate VM instance in old host (BM)
 
-        # error = self.terminateVM(vm)
         error = sourceHostObject.killService(vm.service)
         if error:
             logger.error("Error while terminating VM with uid " + str(vm.uid) + " in host with uid " + str(
@@ -493,7 +473,6 @@ class Network:
         error = destinationHostObject.instantiateService(vm.service)
         if (error):
             logger.error("Error Instantiating Service VM in Host, check logfile. Err: " + str(error))
-        # exit()
         else:
             logger.info("Service VM Instantiated.")
             self.topologyGraph.add_edge(vm.uid, destinationHostObject.uid, uid=vm.uid, color='g', style="dashed",
@@ -528,7 +507,6 @@ class Network:
             except nx.NetworkXNoPath:
                 return False
             chainNodePath.extend(nodePath[1])
-        # logger.info("User with uid "+str(userObject.uid)+" has this host chain path: "+ str(chainNodePath), flairs=["createConnection"])
         logger.info(
             "User uid " + str(userObject.uid) + " has this host chain path: " + str(chainNodePath) + " with this SC:")
         for h in range(len(userObject.userChain.chain)):
@@ -554,18 +532,12 @@ class Network:
                 self.topologyGraph.remove_edge(chainNodePath[edge], chainNodePath[edge + 1])
                 return True
             self.topologyGraph[chainNodePath[edge]][chainNodePath[edge + 1]]['bandwidth'] = bandwidthAfter
-            # logger.info("LNK_UID: "+str(linkuid))
-            # logger.info("NETLNK_LST_LEN: "+str(len(self.networkLinks)))
+
             index = 0
             for link in self.networkLinks:
-                # logger.info("LNK_LP_UID: "+str(link.uid))
-                # logger.info("LNK_LP_TA: "+str(link.bandwidthUtil))
-                # logger.info("-")
                 if link.uid == linkuid:
                     break
                 index += 1
-            # logger.info(index)
-            # exit()
             self.networkLinks[index].bandwidthUtil = bandwidthAfter
 
         return chainNodePath
@@ -573,13 +545,11 @@ class Network:
     def unsuspendLinks(self):
         if self.suspendedLinks:
             for link in self.suspendedLinks[:]:
-                # print(str(link[0])+","+str(link[1])+","+str(link[2])+"////////")
                 attributesList = link[2]
                 self.topologyGraph.add_edge(link[0], link[1], uid=attributesList["uid"], color=attributesList["color"],
                                             style=attributesList["style"], weight=attributesList["weight"],
                                             length=attributesList["length"], delay=attributesList["delay"],
                                             bandwidth=attributesList["bandwidth"], loss=attributesList["loss"])
-                # self.topologyGraph.add_edge(link[0], link[1], color=attributesList["color"], weight=attributesList["weight"])
                 self.suspendedLinks.remove(link)
         return
 
@@ -593,12 +563,10 @@ class Network:
             elif chainNodePath == False:
 
                 logger.info("suspended links <<ffXX>> dump: " + str(self.suspendedLinks))
-                # print(self.topologyGraph.number_of_edges())
 
                 self.unsuspendLinks()
 
                 logger.info("suspended links <<rrXX>> dump: " + str(self.suspendedLinks))
-                # print(str(self.topologyGraph.number_of_edges())+"<><><2>")
 
                 logger.warning("chainNodePath of user " + str(
                     userObject.uid) + " COULD NOT BE DEFINED. No links with available bandwidth are connected to the destination node.")
@@ -609,17 +577,14 @@ class Network:
                 pass
 
         logger.info("suspended links <<ff>> dump: " + str(self.suspendedLinks))
-        # print(str(self.topologyGraph.number_of_edges())+"<><><1>")
 
         self.unsuspendLinks()
 
         logger.info("suspended links <<rr>> dump: " + str(self.suspendedLinks))
-        # print(str(self.topologyGraph.number_of_edges())+"<><><2>")
 
         uid = len(self.trafficActivityList)
         connectionObject = Connection(uid, chainNodePath, userObject)
         self.trafficActivityList.append(connectionObject)
-        # print(chainNodePath)
 
         return connectionObject
 
@@ -636,17 +601,13 @@ class Network:
             bandwidthAfter = linkbandwidth + connectionObject.userObject.bandwidth
             self.topologyGraph[connectionObject.nodePath[edge]][connectionObject.nodePath[edge + 1]][
                 'bandwidth'] = bandwidthAfter
-            # self.networkLinks[linkuid].bandwidthUtil = self.networkLinks[linkuid].bandwidthCap - bandwidthAfter
             index = 0
             for link in self.networkLinks:
-                # logger.info("LNK_LP_UID: "+str(link.uid))
-                # logger.info("LNK_LP_TA: "+str(link.bandwidthUtil))
-                # logger.info("-")
+
                 if link.uid == linkuid:
                     break
                 index += 1
             self.networkLinks[index].bandwidthUtil = bandwidthAfter
-            # self.networkLinks[linkuid].bandwidthUtil = bandwidthAfter
             logger.info("Traffic stopped in edge: " + str(connectionObject.nodePath[edge]))
         self.trafficActivityList.remove(connectionObject)
         logger.info("Traffic connection " + str(connectionObject.nodePath) + " stopped successfully.")
@@ -655,7 +616,8 @@ class Network:
     def servicePing(self, connectionObject):
         if connectionObject == False:
             logger.error(
-                "DURING SERVICEPING. THIS MESSAGE SHOULD NOT DISPLAY! Connection does not exist. Service was denied during request.")
+                "DURING SERVICEPING. THIS MESSAGE SHOULD NOT DISPLAY! Connection does not exist. Service was denied "
+                "during request.")
             return 99999  # Denied flag
         logger.info("servicePing(@args) >> connectionObject.nodePath: " + str(connectionObject.nodePath))
         rtt = 0
@@ -663,30 +625,24 @@ class Network:
             linkAttributesJSON = self.topologyGraph.get_edge_data(connectionObject.nodePath[edge],
                                                                   connectionObject.nodePath[edge + 1])
             rtt += linkAttributesJSON["delay"]
-        logger.info("servicePing for chain " + str(connectionObject.nodePath) + " done with result: " + str(rtt) + "ms.")
+        logger.info(
+            "servicePing for chain " + str(connectionObject.nodePath) + " done with result: " + str(rtt) + "ms.")
         return rtt
 
     def serviceData(self, connectionObject):
-        # e.printl("Link Energy Stats:")
         if connectionObject == False:
             logger.error(
                 "DURING SERVICEDATA. THIS MESSAGE SHOULD NOT DISPLAY! Connection does not exist. Service was denied during request.")
             return -1  # Denied flag
         logger.info("serviceData(@args) >> connectionObject.nodePath: " + str(connectionObject.nodePath))
-        # for edge in range(len(connectionObject.nodePath)-1):
-        # 	linkAttributesJSON = self.topologyGraph.get_edge_data(connectionObject.nodePath[edge],connectionObject.nodePath[edge+1])
-        # 	bitSum = linkAttributesJSON["bits"]
+
         linkEnergy = 0
         if len(connectionObject.nodePath) - 2 != 0:  # is not
             for i in range(len(connectionObject.nodePath) - 2):
                 for link in self.networkLinks:
-                    # sumOverhead = 0
                     if link.source.uid == connectionObject.nodePath[i] and link.destination.uid == \
                             connectionObject.nodePath[i + 1]:
-                        # sumOverhead += link.source.bitsOverhead
-                        # linkEnergy += link.sampleEnergyConsumption(sumOverhead)
                         linkEnergy += link.sampleEnergyConsumption(link.source.bitsOverhead)
-                        # e.printl("Luid: " + str(link.uid) + " s: " + str(link.source.uid) + " d: " + str(link.destination.uid) + " E: " + str(link.sampleEnergyConsumption(link.source.bitsOverhead)))
                         if linkEnergy == 0:
                             print(linkEnergy)
                             print(link.source.bitsOverhead)
@@ -695,13 +651,10 @@ class Network:
                             print(connectionObject.nodePath[i + 1])
                             exit()
         else:
-            # print("ZERO-TWO")
-            # print(connectionObject.nodePath)
             for link in self.networkLinks:
                 if link.source.uid == connectionObject.nodePath[0] and link.destination.uid == \
                         connectionObject.nodePath[1]:
                     linkEnergy += link.sampleEnergyConsumption(link.source.bitsOverhead)
-                    # e.printl("Luid: " + str(link.uid) + " s: " + str(link.source.uid) + " d: " + str(link.destination.uid) + " E: " + str(link.sampleEnergyConsumption(link.source.bitsOverhead)))
                     if linkEnergy == 0:
                         print(linkEnergy)
                         print(link.source.bitsOverhead)
@@ -724,13 +677,7 @@ class Network:
                 "DURING SERVICEPERF. THIS MESSAGE SHOULD NOT DISPLAY! Connection does not exist. Service was denied during request.")
             return 0  # Denied flag
         logger.info("Starting SERVICE PERF of user " + str(connectionObject.userObject.uid))
-        # for edge in range(len(connectionObject.nodePath)-1):
-        # 	linkAttributesJSON = self.topologyGraph.get_edge_data(connectionObject.nodePath[edge],connectionObject.nodePath[edge+1])
-        # 	logger.info("Measured bandwidth of link "+str(connectionObject.nodePath[edge])+" and "+str(connectionObject.nodePath[edge])+" is "+str(linkAttributesJSON["bandwidth"])+" Gbps")
-        # 	if linkAttributesJSON["bandwidth"] < bw:
-        # 		bw = linkAttributesJSON["bandwidth"]
         bw = connectionObject.userObject.trafficPatternGenerator()
-        # bw = connectionObject.userObject.bandwidth
         logger.info("SERVICE PERF done with result: " + str(bw) + "Gbps.")
         return bw
 
@@ -757,32 +704,23 @@ class Network:
         styles = [self.topologyGraph[u][v]['style'] for u, v in edges]
 
         nodes = self.topologyGraph.nodes()
-        # shapes = [self.topologyGraph[n]['shapes'] for n in nodes]
         shapes = set((aShape[1]["shapes"] for aShape in nodes(data=True)))
-        # labels = [self.topologyGraph[u][v]['bandwidth'] for u,v in edges]
 
         # Blue nodes: Servers, size = capacity
-        # Magenda nodes: Users
-        # nodes = self.topologyGraph.nodes()
-        # labels = [self.topologyGraph[u][v]['label'] for u,v in nodes]
-        # self.topologyGraph
-        # nx.draw_networkx_nodes(self.topologyGraph, pos, node_size=700, shapes=shapes)
+        # Magenta nodes: Users
         for aShape in shapes:
             nx.draw_networkx_nodes(self.topologyGraph, pos, node_size=700, node_shape=aShape,
                                    nodelist=[sNode[0] for sNode in filter(lambda x: x[1]["shapes"] == aShape,
                                                                           self.topologyGraph.nodes(data=True))])
 
         # Solid lines: optical links, size = free capacity
-        # Magenda dashed lines: wireless links, size = free capacity.
-        # nx.draw_networkx_edges(self.topologyGraph, pos, edgelist=self.topologyGraph.edges, edge_color=colors, style=styles, width=6)
+        # Magenta dashed lines: wireless links, size = free capacity.
         nx.draw_networkx_edges(self.topologyGraph, pos, edgelist=self.topologyGraph.edges, edge_color=colors,
                                style=styles, width=weights)  # length=lengths
-        # nx.draw_networkx_edge_labels(self.topologyGraph, pos, edge_labels=labels,font_color='red')
         nx.draw_networkx_labels(self.topologyGraph, pos, font_size=20, font_family='sans-serif')
 
         plt.axis('off')
         plt.savefig("./figures/topology.png", format="PNG")
-        # plt.show()
         plt.clf()
 
     def printHosts(self):
@@ -848,19 +786,9 @@ class Network:
         pass
 
     def printUserSnap(self, userObject):
-        # a brief with everythong about the user.
-        # print("[User "+str(userObject.uid)+" data brief]")
-        # print(" |- user_uid: " + str(userObject.uid))
-        # print(" |- user_name: " + str(userObject.name))
-        # print(" |- user_datarate: " + str(userObject.bandwidth))
-        # print(" |- user_max_lat_SLA: " + str(userObject.sla))
-        # print(" |- user_userChain: " + userObject.userChain.strChain())
-        # print(" |- [userChainHosts_exp]")
         chtext = ""
         for h in range(len(userObject.userChain.chain)):
-            # print("      |- VM ["+str(userObject.userChain.chain[h].uid)+"] in host ("+str(userObject.userChain.chain[h].host.uid)+")")
             chtext += str(userObject.userChain.chain[h].host.uid) + ">"
         chtext = chtext[:-1]
-        # return "user_uid: "+str(userObject.uid)+" | max_lat_SLA: " + str(userObject.sla)+" | SC: " + userObject.userChain.strChain()+" | SCHosts: "+chtext
         return "user_uid: " + str(
             userObject.uid) + " | SC: " + userObject.userChain.strChain() + " | SCHosts: " + chtext
