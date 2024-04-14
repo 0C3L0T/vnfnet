@@ -21,7 +21,6 @@ import logging
 
 warnings.filterwarnings("ignore")
 
-# Start Microlog Session
 logger = logging.getLogger(__name__)
 
 logging.basicConfig(filename='./VNFnetLog.log', level=logging.INFO, format='%(asctime)s - %(message)s')
