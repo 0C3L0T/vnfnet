@@ -16,17 +16,19 @@ import matplotlib.pyplot as plt
 
 # Local Modules
 
-from microlog import Microlog
+import logging
+
 
 # Suppress Warnings
 
 warnings.filterwarnings("ignore")
 
 # Start Microlog Session
+logger = logging.getLogger(__name__)
 
-m = Microlog(path=os.path.join('./logs', 'VNFnetLog.log'), date=True)
-# e = Microlog(path=os.path.join('./logs', 'VNFnetENERGYLog.log'), date=True)
-m.printl(" >>>> New VNFnet Session >>>>")
+logging.basicConfig(filename='./VNFnetLog.log', level=logging.INFO, format='%(asctime)s - %(message)s')
+
+logger.info(" >>>> New VNFnet Session >>>>")
 
 
 # Simulation Classes
@@ -96,7 +98,7 @@ class Link:
         """return 0 means ok, 1 means can not be hosted"""
 
         if self.bandwidthCap < (self.bandwidthUtil + serviceObject.bandwidthRequirements):
-            m.printl("[linkALERT] full capacity reached on: " + str(self.uid))  # + " | Top: " + str(self.top()))
+            logger.info("[linkALERT] full capacity reached on: " + str(self.uid))  # + " | Top: " + str(self.top()))
             return 1
 
         self.bandwidthUtil += serviceObject.bandwidthRequirements
@@ -113,7 +115,7 @@ class Link:
                 del self.runningConnections[service]
                 return 0
 
-        m.printl("Connection to kill does not exist")  #: " + str(self.top()))
+        logger.info("Connection to kill does not exist")  #: " + str(self.top()))
         return 1
 
     def top(self):
@@ -166,13 +168,13 @@ class Host:
         """ return 0 means hosted ok, return 1 means that it can not be hosted """
 
         if self.CPUcap < (self.CPUUtil + serviceObject.CPUrequirements):
-            m.printl("[Host Alert] Full CPU on host: " + str(self.uid))  # + " | Top: " + str(self.top()))
+            logger.info("[Host Alert] Full CPU on host: " + str(self.uid))  # + " | Top: " + str(self.top()))
             return 1
         if self.RAMcap < (self.RAMUtil + serviceObject.RAMrequirements):
-            m.printl("[Host Alert] Full RAM on host: " + str(self.uid))  # + " | Top: " + str(self.top()))
+            logger.info("[Host Alert] Full RAM on host: " + str(self.uid))  # + " | Top: " + str(self.top()))
             return 1
         if self.StorageCap < (self.StorageUtil + serviceObject.StorageRequirements):
-            m.printl("[Host Alert] Full Storage on host: " + str(self.uid))  # + " | Top: " + str(self.top()))
+            logger.info("[Host Alert] Full Storage on host: " + str(self.uid))  # + " | Top: " + str(self.top()))
             return 1
 
         self.CPUUtil += serviceObject.CPUrequirements
@@ -195,7 +197,7 @@ class Host:
                 del self.runningServices[service]
 
                 return 0
-        m.printl("[Host Alert] Service to terminate does not exist: ")  # + str(self.top()), flairs=["Host"])
+        logger.info("[Host Alert] Service to terminate does not exist: ")  # + str(self.top()), flairs=["Host"])
         return 1
 
     def sampleEnergyConsumption(self):
@@ -307,7 +309,7 @@ class Network:
         self.networkHosts.append(hostObject)
 
         self.topologyGraph.add_node(uid, label=hostname, shapes="o")
-        m.printl("Host added with uid: " + str(uid) + ", hostname: " + str(hostname) + ".")
+        logger.info("Host added with uid: " + str(uid) + ", hostname: " + str(hostname) + ".")
 
         if cpuCores > self.maxNetCPU:
             self.maxNetCPU = cpuCores
@@ -325,7 +327,7 @@ class Network:
         self.networkUsers.append(userObject)
 
         self.topologyGraph.add_node(uid, uid=uid, label=name, shapes="v")
-        m.printl("User with uid: " + str(uid) + " added.")
+        logger.info("User with uid: " + str(uid) + " added.")
 
         # if sla > self.maxNetSLA:
         # 	self.maxNetSLA = sla
@@ -355,7 +357,7 @@ class Network:
                                         style="solid", weight=bandwidth / 12, length=delay, delay=delay,
                                         bandwidth=bandwidth, loss=loss)
 
-        m.printl("Link " + "(" + str(sourceHostObject.uid) + ")<->(" + str(
+        logger.info("Link " + "(" + str(sourceHostObject.uid) + ")<->(" + str(
             destinationHostObject.uid) + ")" + " with bandwidth: " + str(bandwidth) + " added with uid: " + str(
             uid) + ".")
 
@@ -380,7 +382,7 @@ class Network:
         serviceObject = Service(uid, title, cpuCores=cpuCores, ram=ram, storage=storage)
         self.networkServices.append(serviceObject)
 
-        m.printl("Service added with uid: " + str(uid) + ".")
+        logger.info("Service added with uid: " + str(uid) + ".")
 
         return serviceObject
 
@@ -389,7 +391,7 @@ class Network:
         uid = self.getGUID()
         chainObject = Chain(uid=uid, title=title, chainList=serviceObjectList, sla=sla)
         self.networkChains.append(chainObject)
-        m.printl("Chain added with uid: " + str(uid) + ".")
+        logger.info("Chain added with uid: " + str(uid) + ".")
 
         return chainObject
 
@@ -405,7 +407,7 @@ class Network:
         uid = self.getGUID()
         domainObject = Domain(uid, name, hostList, linkList)
         self.networkDomains.append(domainObject)
-        m.printl("Domain " + str(name) + " added with uid: " + str(uid) + ".")
+        logger.info("Domain " + str(name) + " added with uid: " + str(uid) + ".")
 
         return domainObject
 
@@ -417,11 +419,11 @@ class Network:
         title2 = serviceObject.name + str(uid)
         self.VMObject = VM(uid, title2, serviceObject, hostObject)
         self.networkVMs.append(self.VMObject)
-        m.printl("Service VM Instantiated with uid: " + str(uid) + ".")
+        logger.info("Service VM Instantiated with uid: " + str(uid) + ".")
 
         error = hostObject.instantiateService(serviceObject)
         if (error):
-            m.printl("Error Instantiating Service VM in Host, check logfile. Err: " + str(error),
+            logger.info("Error Instantiating Service VM in Host, check logfile. Err: " + str(error),
                      flairs=["instantiateVM"])
         # exit()
 
@@ -435,7 +437,7 @@ class Network:
         hostObject = VMObject.host
         error = hostObject.killService(VMObject.service)
         if error:
-            m.printl("Error while terminating VM in host. Check the class code.", flairs=["terminateVM"])
+            logger.info("Error while terminating VM in host. Check the class code.", flairs=["terminateVM"])
             return False
 
         self.topologyGraph.remove_node(VMObject.uid)
@@ -450,7 +452,7 @@ class Network:
         # Discover connections to update
 
         if sourceHostObject == destinationHostObject:
-            m.printl("Source and destination hosts are the same.", flairs=["migrateVM"])
+            logger.info("Source and destination hosts are the same.", flairs=["migrateVM"])
             return True
         for connection in self.trafficActivityList:
             if vm.host in connection.nodePath:
@@ -462,7 +464,7 @@ class Network:
             # self.stopTraffic(connection.userObject)
             er = self.stopTraffic(connection)
             if not er:
-                m.printl("Error in vm.stop(): " + str(er), flairs=["migrateVM"])
+                logger.info("Error in vm.stop(): " + str(er), flairs=["migrateVM"])
                 return False
 
         # Start traffic in new host (AM)
@@ -471,7 +473,7 @@ class Network:
             # self.startTraffic(connection.userObject)
             error = self.startTraffic(connection)
             if not error:
-                m.printl("Error migrating, could not start connection in new host.", flairs=["migrateVM"])
+                logger.info("Error migrating, could not start connection in new host.", flairs=["migrateVM"])
                 return False
 
         # Terminate VM instance in old host (BM)
@@ -479,11 +481,11 @@ class Network:
         # error = self.terminateVM(vm)
         error = sourceHostObject.killService(vm.service)
         if error:
-            m.printl("Error while terminating VM with uid " + str(vm.uid) + " in host with uid " + str(
+            logger.info("Error while terminating VM with uid " + str(vm.uid) + " in host with uid " + str(
                 sourceHostObject.uid) + ". VM not found in host.", flairs=["migrateVM"])
             return False
         else:
-            m.printl(
+            logger.info(
                 "VM with uid " + str(vm.uid) + " in host " + str(sourceHostObject.uid) + " terminated successfully.",
                 flairs=["migrateVM"])
             self.topologyGraph.remove_edge(vm.uid, sourceHostObject.uid)
@@ -493,17 +495,17 @@ class Network:
         # self.instantiateVM(vm.service, destinationHostObject)
         error = destinationHostObject.instantiateService(vm.service)
         if (error):
-            m.printl("Error Instantiating Service VM in Host, check logfile. Err: " + str(error), flairs=["migrateVM"])
+            logger.info("Error Instantiating Service VM in Host, check logfile. Err: " + str(error), flairs=["migrateVM"])
         # exit()
         else:
-            m.printl("Service VM Instantiated.", flairs=["migrateVM"])
+            logger.info("Service VM Instantiated.", flairs=["migrateVM"])
             self.topologyGraph.add_edge(vm.uid, destinationHostObject.uid, uid=vm.uid, color='g', style="dashed",
                                         weight=1, length=12, delay=99999, bandwidth=0, loss=100)
 
         # Log Action
 
         vm.host = destinationHostObject
-        m.printl("Migration successful. Info: " + str(vm.uid) + " (" + str(sourceHostObject.uid) + ")->-(" + str(
+        logger.info("Migration successful. Info: " + str(vm.uid) + " (" + str(sourceHostObject.uid) + ")->-(" + str(
             destinationHostObject.uid) + ").", flairs=["migrateVM"])
         return True
 
@@ -518,7 +520,7 @@ class Network:
             nodePath = nx.single_source_dijkstra(self.topologyGraph, userObject.uid,
                                                  userObject.userChain.chain[0].host.uid, weight='delay')
         except nx.NetworkXNoPath:
-            m.printl("except NetworkXNoPath")
+            logger.info("except NetworkXNoPath")
             return False
         chainNodePath.extend(nodePath[1])
         for n in range(len(userObject.userChain.chain) - 1):
@@ -529,12 +531,12 @@ class Network:
             except nx.NetworkXNoPath:
                 return False
             chainNodePath.extend(nodePath[1])
-        # m.printl("User with uid "+str(userObject.uid)+" has this host chain path: "+ str(chainNodePath), flairs=["createConnection"])
-        m.printl(
+        # logger.info("User with uid "+str(userObject.uid)+" has this host chain path: "+ str(chainNodePath), flairs=["createConnection"])
+        logger.info(
             "User uid " + str(userObject.uid) + " has this host chain path: " + str(chainNodePath) + " with this SC:",
             flairs=["createConnection"])
         for h in range(len(userObject.userChain.chain)):
-            m.printl(" |- VM [" + str(userObject.userChain.chain[h].uid) + "] in host (" + str(
+            logger.info(" |- VM [" + str(userObject.userChain.chain[h].uid) + "] in host (" + str(
                 userObject.userChain.chain[h].host.uid) + ")", flairs=["createConnection"])
 
         # Allocate bandwidth on Links
@@ -544,11 +546,11 @@ class Network:
             linkbandwidth = linkAttributesJSON["bandwidth"]
             linkuid = linkAttributesJSON["uid"]
             bandwidthAfter = linkbandwidth - userObject.bandwidth
-            m.printl(
+            logger.info(
                 "Link uid: " + str(linkuid) + " bandwidth_after is " + str(bandwidthAfter) + " of connection (" + str(
                     chainNodePath[edge]) + ")-(" + str(chainNodePath[edge + 1]) + ").")
             if bandwidthAfter <= 0:
-                m.printl("Cannot create connection between nodes: " + str(chainNodePath[edge]) + " and " + str(
+                logger.info("Cannot create connection between nodes: " + str(chainNodePath[edge]) + " and " + str(
                     chainNodePath[
                         edge + 1]) + ". ZERO OR NEGATIVE bandwidth AFTER TRAFFIC ASSIGNMENT. Adding link to suspended.")
                 self.suspendedLinks.append([chainNodePath[edge], chainNodePath[edge + 1],
@@ -556,17 +558,17 @@ class Network:
                 self.topologyGraph.remove_edge(chainNodePath[edge], chainNodePath[edge + 1])
                 return True
             self.topologyGraph[chainNodePath[edge]][chainNodePath[edge + 1]]['bandwidth'] = bandwidthAfter
-            # m.printl("LNK_UID: "+str(linkuid))
-            # m.printl("NETLNK_LST_LEN: "+str(len(self.networkLinks)))
+            # logger.info("LNK_UID: "+str(linkuid))
+            # logger.info("NETLNK_LST_LEN: "+str(len(self.networkLinks)))
             index = 0
             for link in self.networkLinks:
-                # m.printl("LNK_LP_UID: "+str(link.uid))
-                # m.printl("LNK_LP_TA: "+str(link.bandwidthUtil))
-                # m.printl("-")
+                # logger.info("LNK_LP_UID: "+str(link.uid))
+                # logger.info("LNK_LP_TA: "+str(link.bandwidthUtil))
+                # logger.info("-")
                 if link.uid == linkuid:
                     break
                 index += 1
-            # m.printl(index)
+            # logger.info(index)
             # exit()
             self.networkLinks[index].bandwidthUtil = bandwidthAfter
 
@@ -590,32 +592,32 @@ class Network:
         while True:
             chainNodePath = self.createConnection(userObject)
             if isinstance(chainNodePath, list):
-                m.printl("chainNodePath " + str(chainNodePath) + " defined successfully")
+                logger.info("chainNodePath " + str(chainNodePath) + " defined successfully")
                 break
             elif chainNodePath == False:
 
-                m.printl("suspended links <<ffXX>> dump: " + str(self.suspendedLinks))
+                logger.info("suspended links <<ffXX>> dump: " + str(self.suspendedLinks))
                 # print(self.topologyGraph.number_of_edges())
 
                 self.unsuspendLinks()
 
-                m.printl("suspended links <<rrXX>> dump: " + str(self.suspendedLinks))
+                logger.info("suspended links <<rrXX>> dump: " + str(self.suspendedLinks))
                 # print(str(self.topologyGraph.number_of_edges())+"<><><2>")
 
-                m.printl("chainNodePath of user " + str(
+                logger.info("chainNodePath of user " + str(
                     userObject.uid) + " COULD NOT BE DEFINED. No links with available bandwidth are connected to the destination node.")
 
                 return False  # Refuse service
             else:
-                m.printl("Rerouting. Removed unavailable link from graph.")
+                logger.info("Rerouting. Removed unavailable link from graph.")
                 pass
 
-        m.printl("suspended links <<ff>> dump: " + str(self.suspendedLinks))
+        logger.info("suspended links <<ff>> dump: " + str(self.suspendedLinks))
         # print(str(self.topologyGraph.number_of_edges())+"<><><1>")
 
         self.unsuspendLinks()
 
-        m.printl("suspended links <<rr>> dump: " + str(self.suspendedLinks))
+        logger.info("suspended links <<rr>> dump: " + str(self.suspendedLinks))
         # print(str(self.topologyGraph.number_of_edges())+"<><><2>")
 
         uid = len(self.trafficActivityList)
@@ -627,9 +629,9 @@ class Network:
 
     def stopTraffic(self, connectionObject):
         if not connectionObject:
-            m.printl("Connection does not exist. Service was denied during request.", flairs=["stopTraffic"])
+            logger.info("Connection does not exist. Service was denied during request.", flairs=["stopTraffic"])
             return False
-        m.printl("stopTraffic(@args) >> connectionObject.nodePath: " + str(connectionObject.nodePath),
+        logger.info("stopTraffic(@args) >> connectionObject.nodePath: " + str(connectionObject.nodePath),
                  flairs=["stopTraffic"])
         for edge in range(len(connectionObject.nodePath) - 1):
             linkAttributesJSON = self.topologyGraph.get_edge_data(connectionObject.nodePath[edge],
@@ -642,43 +644,43 @@ class Network:
             # self.networkLinks[linkuid].bandwidthUtil = self.networkLinks[linkuid].bandwidthCap - bandwidthAfter
             index = 0
             for link in self.networkLinks:
-                # m.printl("LNK_LP_UID: "+str(link.uid))
-                # m.printl("LNK_LP_TA: "+str(link.bandwidthUtil))
-                # m.printl("-")
+                # logger.info("LNK_LP_UID: "+str(link.uid))
+                # logger.info("LNK_LP_TA: "+str(link.bandwidthUtil))
+                # logger.info("-")
                 if link.uid == linkuid:
                     break
                 index += 1
             self.networkLinks[index].bandwidthUtil = bandwidthAfter
             # self.networkLinks[linkuid].bandwidthUtil = bandwidthAfter
-            m.printl("Traffic stopped in edge: " + str(connectionObject.nodePath[edge]), flairs=["stopTraffic"])
+            logger.info("Traffic stopped in edge: " + str(connectionObject.nodePath[edge]), flairs=["stopTraffic"])
         self.trafficActivityList.remove(connectionObject)
-        m.printl("Traffic connection " + str(connectionObject.nodePath) + " stopped successfully.",
+        logger.info("Traffic connection " + str(connectionObject.nodePath) + " stopped successfully.",
                  flairs=["stopTraffic"])
         return True
 
     def servicePing(self, connectionObject):
         if connectionObject == False:
-            m.printl(
+            logger.info(
                 "DURING SERVICEPING. THIS MESSAGE SHOULD NOT DISPLAY! Connection does not exist. Service was denied during request.",
                 flairs=["ERROR", "servicePing"])
             return 99999  # Denied flag
-        m.printl("servicePing(@args) >> connectionObject.nodePath: " + str(connectionObject.nodePath))
+        logger.info("servicePing(@args) >> connectionObject.nodePath: " + str(connectionObject.nodePath))
         rtt = 0
         for edge in range(len(connectionObject.nodePath) - 1):
             linkAttributesJSON = self.topologyGraph.get_edge_data(connectionObject.nodePath[edge],
                                                                   connectionObject.nodePath[edge + 1])
             rtt += linkAttributesJSON["delay"]
-        m.printl("servicePing for chain " + str(connectionObject.nodePath) + " done with result: " + str(rtt) + "ms.")
+        logger.info("servicePing for chain " + str(connectionObject.nodePath) + " done with result: " + str(rtt) + "ms.")
         return rtt
 
     def serviceData(self, connectionObject):
         # e.printl("Link Energy Stats:")
         if connectionObject == False:
-            m.printl(
+            logger.info(
                 "DURING SERVICEDATA. THIS MESSAGE SHOULD NOT DISPLAY! Connection does not exist. Service was denied during request.",
                 flairs=["ERROR", "serviceData"])
             return -1  # Denied flag
-        m.printl("serviceData(@args) >> connectionObject.nodePath: " + str(connectionObject.nodePath))
+        logger.info("serviceData(@args) >> connectionObject.nodePath: " + str(connectionObject.nodePath))
         # for edge in range(len(connectionObject.nodePath)-1):
         # 	linkAttributesJSON = self.topologyGraph.get_edge_data(connectionObject.nodePath[edge],connectionObject.nodePath[edge+1])
         # 	bitSum = linkAttributesJSON["bits"]
@@ -720,25 +722,25 @@ class Network:
             print("Zero Energy! ERROR! Dump info:")
             print(connectionObject.nodePath)
             exit()
-        m.printl("serviceData for chain " + str(connectionObject.nodePath) + " done with result: " + str(
+        logger.info("serviceData for chain " + str(connectionObject.nodePath) + " done with result: " + str(
             linkEnergy) + " bits.")
         return linkEnergy
 
     def servicePerf(self, connectionObject):
         if connectionObject == False:
-            m.printl(
+            logger.info(
                 "DURING SERVICEPERF. THIS MESSAGE SHOULD NOT DISPLAY! Connection does not exist. Service was denied during request.",
                 flairs=["ERROR"])
             return 0  # Denied flag
-        m.printl("Starting SERVICE PERF of user " + str(connectionObject.userObject.uid))
+        logger.info("Starting SERVICE PERF of user " + str(connectionObject.userObject.uid))
         # for edge in range(len(connectionObject.nodePath)-1):
         # 	linkAttributesJSON = self.topologyGraph.get_edge_data(connectionObject.nodePath[edge],connectionObject.nodePath[edge+1])
-        # 	m.printl("Measured bandwidth of link "+str(connectionObject.nodePath[edge])+" and "+str(connectionObject.nodePath[edge])+" is "+str(linkAttributesJSON["bandwidth"])+" Gbps")
+        # 	logger.info("Measured bandwidth of link "+str(connectionObject.nodePath[edge])+" and "+str(connectionObject.nodePath[edge])+" is "+str(linkAttributesJSON["bandwidth"])+" Gbps")
         # 	if linkAttributesJSON["bandwidth"] < bw:
         # 		bw = linkAttributesJSON["bandwidth"]
         bw = connectionObject.userObject.trafficPatternGenerator()
         # bw = connectionObject.userObject.bandwidth
-        m.printl("SERVICE PERF done with result: " + str(bw) + "Gbps.")
+        logger.info("SERVICE PERF done with result: " + str(bw) + "Gbps.")
         return bw
 
     def servicePerformanceScore(self, userObject):
