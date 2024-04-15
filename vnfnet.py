@@ -37,27 +37,6 @@ class TrafficPattern(Enum):
     SAW = 3
 
 
-class Chain:
-    def __init__(self, uid: int, title: str, chain_list, sla) -> None:
-        self.uid = uid
-        self.title = title
-        self.sla = sla
-        self.chain = chain_list  # DATA FLOW -> FROM FIRST TO LAST VM!
-
-    def destination(self) -> str:
-        return self.chain[len(self.chain) - 1].host.uid
-
-    def __str__(self) -> str:
-        text = ""
-
-        for vm in self.chain:
-            text += str(vm.uid)
-            text += ">"
-
-        text = text[:-1]
-        return text
-
-
 class Service:
     def __init__(self, uid: int, title="Untitled_Service", cpu_cores=1, ram=1, storage=1, bandwidth=0.22) -> None:
         self.name = title
@@ -140,6 +119,33 @@ class VM:
 
         self.service = service_image
         self.host = host_object
+
+
+class Chain:
+    def __init__(self, uid: int, title: str, chain_list: list[VM], sla) -> None:
+        self.uid = uid
+        self.title = title
+        self.sla = sla
+        self.chain = chain_list  # DATA FLOW -> FROM FIRST TO LAST VM!
+
+    def destination(self) -> int:
+        return self.chain[len(self.chain) - 1].host.uid
+
+    def __str__(self) -> str:
+        text = ""
+
+        for vm in self.chain:
+            text += str(vm.uid)
+            text += ">"
+
+        text = text[:-1]
+        return text
+
+
+
+
+
+
 
 
 class Link:
@@ -364,7 +370,7 @@ class Network:
 
         return service_object
 
-    def add_chain(self, title: str, service_object_list: list[Service], sla: int) -> Chain:
+    def add_chain(self, title: str, service_object_list: list[VM], sla: int) -> Chain:
 
         uid = self.get_guid()
         chainObject = Chain(uid=uid, title=title, chain_list=service_object_list, sla=sla)
