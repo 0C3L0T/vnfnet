@@ -5,6 +5,9 @@ Todo:
 - [X] Replace microlog with Python's logging module.
 - [X] Add typing.
 - [ ] Refactor code, split in multiple files.
+  - [X] separate substrate network
+  - [ ] separate simulation
+  - [ ] separate environment
 - [ ] Separate service graphs from instantiation.
 - [ ] Service Templates
 - [ ] Whitepaper.
