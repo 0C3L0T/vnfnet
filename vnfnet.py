@@ -108,7 +108,8 @@ class Host:
         return 1
 
     def sample_energy_consumption(self) -> float:
-        server_consumption = self.CPUUtil * self.architectureEffectiveSwitchedCapacitance * self.cpuCyclesPerSampleData * self.bitsOverhead * (self.cpuFrequency ** 2)
+        server_consumption = self.CPUUtil * self.architectureEffectiveSwitchedCapacitance * self.cpuCyclesPerSampleData * self.bitsOverhead * (
+                    self.cpuFrequency ** 2)
         return server_consumption
 
 
@@ -140,12 +141,6 @@ class Chain:
 
         text = text[:-1]
         return text
-
-
-
-
-
-
 
 
 class Link:
