@@ -4,13 +4,12 @@ uid = int
 
 
 class Host:
-    uid: uid
+    _uid: uid = 0
     cpu_avail: float
     mem_avail: float
     storage_avail: float
 
-    def __init__(self, uid: int, cpu_avail: float, mem_avail: float, storage_avail: float):
-        self.uid = uid
+    def __init__(self, cpu_avail: float, mem_avail: float, storage_avail: float):
         self.cpu_avail = cpu_avail
         self.memory_avail = mem_avail
         self.storage_avail = storage_avail
@@ -31,31 +30,32 @@ class Host:
         """
         decrease available resources of the host, return uid of the host if success or an error message if fail
         """
+        assert (not self._uid, "host is not allocated on a network")
+
         if not self._resources_are_available(cpu, mem, storage):
-            return Err(f'resources not available on host {self.uid}')
+            return Err(f'resources not available on host {self._uid}')
 
         self._decrease_resources(cpu, mem, storage)
 
-        return Ok(self.uid)
+        return Ok(self._uid)
 
     # this could potentially lead to users adding more resources back to a host than was originally available
     def free_resources(self, cpu: float, mem: float, storage: float) -> None:
         """
         increase available resources of the host
         """
-
         self.cpu_avail += cpu
         self.mem_avail += mem
         self.storage_avail += storage
 
 
 class Link:
-    uid: uid
+    _uid: uid = 0
     bandwidth_avail: float
     latency: float
     transfer_rate: float
 
-    def __init__(self, uid: int, bandwidth_avail: float, latency: float, transfer_rate: float) -> None:
+    def __init__(self, bandwidth_avail: float, latency: float, transfer_rate: float) -> None:
         self.uid = uid
         self.bandwidth_avail = bandwidth_avail
         self.latency = latency
@@ -65,13 +65,14 @@ class Link:
         """
         decrease available bandwidth of the Link, return uid or error message if resources not available
         """
+        assert (not self._uid, "link is not allocated on a network")
 
         if self.bandwidth_avail < bandwidth:
-            return Err(f'resources not available on link {self.uid}')
+            return Err(f'resources not available on link {self._uid}')
 
         self.bandwidth_avail -= bandwidth
 
-        return Ok(self.uid)
+        return Ok(self._uid)
 
 
 # maybe have like a substrate factory that can make substrates with networkX?
@@ -180,3 +181,8 @@ class Substrate:
         link = self._get_link(target_edge)
         if is_ok(link):
             link.ok_value.free_resources(bandwidth_usage)
+
+
+if __name__ == '__main__':
+    S = Substrate()
+    S.add_host(Host(5.4))
