@@ -1,5 +1,6 @@
 from result import Result, Ok, Err, is_ok
 from VirtualMachine import VirtualMachine
+from VirtualLink import VirtualLink
 
 uid = int
 
@@ -154,14 +155,14 @@ class Substrate:
                 vm.storage_usage
             )
 
-    def insert_virtual_link(self, target_edge: uid, bandwidth_usage: float) -> Result[None, str]:
+    def insert_virtual_link(self, target_edge: uid, vl: VirtualLink) -> Result[None, str]:
         """
         allocate the resources on a link for a virtual link and return None or fail with an error message
         """
 
         link = self._get_link_by_id(target_edge)
         if is_ok(link):
-            match link.ok_value.allocate_resources(bandwidth_usage):
+            match link.ok_value.allocate_resources(vl.bandwidth_usage):
                 case Ok():
                     return Ok(None)
                 case Err(e):
@@ -170,14 +171,14 @@ class Substrate:
         return Err(link.err_value)
 
     # this too might lead to users freeing more resources than were initially available on the link
-    def remove_virtual_link(self, target_edge: uid, bandwidth_usage: float) -> None:
+    def remove_virtual_link(self, target_edge: uid, vl: VirtualLink) -> None:
         """
         free the resources on a link for a virtual link
         """
 
         link = self._get_link_by_id(target_edge)
         if is_ok(link):
-            link.ok_value.free_resources(bandwidth_usage)
+            link.ok_value.free_resources(vl.bandwidth_usage)
 
     def __str__(self):
         return f"hosts in network: {len(self.nodes)}, links in network: {len(self.edges)}"
