@@ -1,4 +1,5 @@
 from result import Result, Ok, Err, is_ok
+from VirtualMachine import VirtualMachine
 
 uid = int
 
@@ -120,51 +121,49 @@ class Substrate:
 
         return Ok(self.edges.get(link_uid))
 
-    def insert_virtual_machine(self,
-                               target_host: uid,
-                               cpu_usage: float,
-                               mem_usage: float,
-                               storage_usage: float
-                               ) -> Result[uid, str]:
+    def insert_virtual_machine(self, target_host: uid, vm: VirtualMachine) -> Result[None, str]:
         """
-        allocate the resources on a host for a virtual machine or fail with an error message
+        allocate the resources on a host for a virtual machine and return None or fail with an error message
         """
 
-        host = self._get_host_by_id(target_host)
+        host = self._get_host_by_id(target_host)  # Host or error message
         if is_ok(host):
-            match host.ok_value.allocate_resources(cpu_usage, mem_usage, storage_usage):
+            match host.ok_value.allocate_resources(
+                vm.cpu_usage,
+                vm.mem_usage,
+                vm.storage_usage
+            ):
                 case Ok():
-                    return Ok(target_host)
+                    return Ok(None)
                 case Err(e):
                     return Err(e)
 
         return Err(host.err_value)
 
     # this too might lead to users freeing more resources than were initially available on the host
-    def remove_virtual_machine(self,
-                               target_host: uid,
-                               cpu_usage: float,
-                               mem_usage: float,
-                               storage_usage: float
-                               ) -> None:
+    def remove_virtual_machine(self, target_host: uid, vm: VirtualMachine) -> None:
         """
         free the resources on a host for a virtual machine
         """
 
         host = self._get_host_by_id(target_host)
         if is_ok(host):
-            host.ok_value.free_resources(cpu_usage, mem_usage, storage_usage)
+            host.ok_value.free_resources(
+                vm.cpu_usage,
+                vm.mem_usage,
+                vm.storage_usage
+            )
 
-    def insert_virtual_link(self, target_edge: uid, bandwidth_usage: float) -> Result[uid, str]:
+    def insert_virtual_link(self, target_edge: uid, bandwidth_usage: float) -> Result[None, str]:
         """
-        allocate the resources on a link for a virtual link or fail with an error message
+        allocate the resources on a link for a virtual link and return None or fail with an error message
         """
 
         link = self._get_link_by_id(target_edge)
         if is_ok(link):
             match link.ok_value.allocate_resources(bandwidth_usage):
                 case Ok():
-                    return Ok(target_edge)
+                    return Ok(None)
                 case Err(e):
                     return Err(e)
 
@@ -181,16 +180,14 @@ class Substrate:
             link.ok_value.free_resources(bandwidth_usage)
 
     def __str__(self):
-        print(f"hosts in network: {len(self.nodes)}, links in network: {len(self.edges)}")
+        return f"hosts in network: {len(self.nodes)}, links in network: {len(self.edges)}"
 
 
 if __name__ == '__main__':
     S = Substrate()
     host_id = S.add_host(Host(cpu_avail=4.5, mem_avail=16000, storage_avail=20000))
 
-    S.insert_virtual_machine(target_host=host_id, cpu_usage=0.2, mem_usage=500, storage_usage=2000)
+    S.insert_virtual_machine(target_host=host_id,
+                             vm=VirtualMachine(cpu_usage=3.5, mem_usage=500, storage_usage=2000)).unwrap()
 
     print(S)
-
-
-
