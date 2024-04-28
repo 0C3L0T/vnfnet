@@ -1,0 +1,2 @@
+class TrafficGenerator:
+    pass
