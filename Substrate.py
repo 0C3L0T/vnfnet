@@ -4,7 +4,7 @@ uid = int
 
 
 class Host:
-    _uid: uid = 0
+    uid: uid = 0
     cpu_avail: float
     mem_avail: float
     storage_avail: float
@@ -30,14 +30,12 @@ class Host:
         """
         decrease available resources of the host, return uid of the host if success or an error message if fail
         """
-        assert (not self._uid, "host is not allocated on a network")
-
         if not self._resources_are_available(cpu, mem, storage):
-            return Err(f'resources not available on host {self._uid}')
+            return Err(f'resources not available on host {self.uid}')
 
         self._decrease_resources(cpu, mem, storage)
 
-        return Ok(self._uid)
+        return Ok(self.uid)
 
     # this could potentially lead to users adding more resources back to a host than was originally available
     def free_resources(self, cpu: float, mem: float, storage: float) -> None:
@@ -65,8 +63,6 @@ class Link:
         """
         decrease available bandwidth of the Link, return uid or error message if resources not available
         """
-        assert (not self._uid, "link is not allocated on a network")
-
         if self.bandwidth_avail < bandwidth:
             return Err(f'resources not available on link {self._uid}')
 
@@ -86,41 +82,43 @@ class Substrate:
         self.uid_counter += 1
         return self.uid_counter
 
-    def add_host(self, cpu_avail: float, mem_avail: float, storage_avail: float) -> None:
+    def add_host(self, host: Host) -> uid:
         """
-        add a host (node) to the substrate network
+        add a host (node) to the substrate network and return host uid
         """
-
         uid = self._get_uid()
-        host = Host(uid=uid, cpu_avail=cpu_avail, mem_avail=mem_avail, storage_avail=storage_avail)
+        host.uid = uid
         self.nodes[uid] = host
 
-    def _get_host(self, uid: int) -> Result[Host, str]:
+        return uid
+
+    def _get_host_by_id(self, host_uid: int) -> Result[Host, str]:
         """
         get a host by id, return Host object or error message if host not found
         """
-        if self.nodes.get(uid) is None:
-            return Err(f'host {uid} not found')
+        if self.nodes.get(host_uid) is None:
+            return Err(f'host {host_uid} not found')
 
-        return Ok(self.nodes.get(uid))
+        return Ok(self.nodes.get(host_uid))
 
-    def add_link(self, bandwidth_avail: float, latency: float, transfer_rate: float) -> None:
+    def add_link(self, link: Link) -> uid:
         """
-        add a link (edge) to the substrate network
+        add a link (edge) to the substrate network and return link id
         """
-
         uid = self._get_uid()
-        link = Link(uid=uid, bandwidth_avail=bandwidth_avail, latency=latency, transfer_rate=transfer_rate)
+        link.uid = uid
         self.edges[uid] = link
 
-    def _get_link(self, uid: int) -> Result[Link, str]:
+        return uid
+
+    def _get_link_by_id(self, link_uid: int) -> Result[Link, str]:
         """
         get a link by uid, return Link object or error message if link not found
         """
-        if self.edges.get(uid) is None:
-            return Err(f'link {uid} not found')
+        if self.edges.get(link_uid) is None:
+            return Err(f'link {link_uid} not found')
 
-        return Ok(self.edges.get(uid))
+        return Ok(self.edges.get(link_uid))
 
     def insert_virtual_machine(self,
                                target_host: uid,
@@ -132,7 +130,7 @@ class Substrate:
         allocate the resources on a host for a virtual machine or fail with an error message
         """
 
-        host = self._get_host(target_host)
+        host = self._get_host_by_id(target_host)
         if is_ok(host):
             match host.ok_value.allocate_resources(cpu_usage, mem_usage, storage_usage):
                 case Ok():
@@ -153,7 +151,7 @@ class Substrate:
         free the resources on a host for a virtual machine
         """
 
-        host = self._get_host(target_host)
+        host = self._get_host_by_id(target_host)
         if is_ok(host):
             host.ok_value.free_resources(cpu_usage, mem_usage, storage_usage)
 
@@ -162,7 +160,7 @@ class Substrate:
         allocate the resources on a link for a virtual link or fail with an error message
         """
 
-        link = self._get_link(target_edge)
+        link = self._get_link_by_id(target_edge)
         if is_ok(link):
             match link.ok_value.allocate_resources(bandwidth_usage):
                 case Ok():
@@ -178,11 +176,21 @@ class Substrate:
         free the resources on a link for a virtual link
         """
 
-        link = self._get_link(target_edge)
+        link = self._get_link_by_id(target_edge)
         if is_ok(link):
             link.ok_value.free_resources(bandwidth_usage)
+
+    def __str__(self):
+        print(f"hosts in network: {len(self.nodes)}, links in network: {len(self.edges)}")
 
 
 if __name__ == '__main__':
     S = Substrate()
-    S.add_host(Host(5.4))
+    host_id = S.add_host(Host(cpu_avail=4.5, mem_avail=16000, storage_avail=20000))
+
+    S.insert_virtual_machine(target_host=host_id, cpu_usage=0.2, mem_usage=500, storage_usage=2000)
+
+    print(S)
+
+
+
