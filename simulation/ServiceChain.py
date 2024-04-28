@@ -1,4 +1,4 @@
-from NetworkFunction import NetworkFunction
+from simulation.NetworkFunction import NetworkFunction
 
 
 class ServiceChain:
@@ -7,5 +7,5 @@ class ServiceChain:
     def add_function(self, function: NetworkFunction):
         pass
 
-    def calculate_latency(self):
+    def calculate_latency(self) -> float:
         pass
