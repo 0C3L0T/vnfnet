@@ -1,9 +1,8 @@
 class VirtualLink:
+    uid: int = 0
     bandwidth_usage: float
-    latency: float  # inherit from link
-    transfer_rate: float
+    latency: float = 0  # inherit from Link
+    transfer_rate: float = 0  # inherit from Link
 
-    def __init__(self, bandwidth_usage: float, latency: float, transfer_rate: float) -> None:
+    def __init__(self, bandwidth_usage: float) -> None:
         self.bandwidth_usage = bandwidth_usage
-        self.latency = latency
-        self.transfer_rate = transfer_rate

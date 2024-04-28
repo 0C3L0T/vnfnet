@@ -1,4 +1,12 @@
+from NetworkFunction import NetworkFunction
+
+
 class VirtualMachine:
+    uid: int = 0
+    host_id: int = 0
+
+    functions: dict[int, NetworkFunction] = {}
+
     cpu_usage: float
     mem_usage: float
     storage_usage: float

@@ -126,7 +126,6 @@ class Substrate:
         """
         allocate the resources on a host for a virtual machine and return None or fail with an error message
         """
-
         host = self._get_host_by_id(target_host)  # Host or error message
         if is_ok(host):
             match host.ok_value.allocate_resources(
@@ -135,6 +134,8 @@ class Substrate:
                 vm.storage_usage
             ):
                 case Ok():
+                    vm.uid = self._get_uid()
+                    vm.host_id = target_host
                     return Ok(None)
                 case Err(e):
                     return Err(e)
@@ -146,7 +147,6 @@ class Substrate:
         """
         free the resources on a host for a virtual machine
         """
-
         host = self._get_host_by_id(target_host)
         if is_ok(host):
             host.ok_value.free_resources(
@@ -159,11 +159,14 @@ class Substrate:
         """
         allocate the resources on a link for a virtual link and return None or fail with an error message
         """
-
         link = self._get_link_by_id(target_edge)
+
         if is_ok(link):
-            match link.ok_value.allocate_resources(vl.bandwidth_usage):
+            link = link.ok_value
+            match link.allocate_resources(vl.bandwidth_usage):
                 case Ok():
+                    vl.latency = link.latency
+                    vl.transfer_rate = link.transfer_rate
                     return Ok(None)
                 case Err(e):
                     return Err(e)
@@ -175,7 +178,6 @@ class Substrate:
         """
         free the resources on a link for a virtual link
         """
-
         link = self._get_link_by_id(target_edge)
         if is_ok(link):
             link.ok_value.free_resources(vl.bandwidth_usage)
@@ -187,8 +189,11 @@ class Substrate:
 if __name__ == '__main__':
     S = Substrate()
     host_id = S.add_host(Host(cpu_avail=4.5, mem_avail=16000, storage_avail=20000))
+    edge_id = S.add_link(Link(bandwidth_avail=5000, latency=200, transfer_rate=1000000))
 
     S.insert_virtual_machine(target_host=host_id,
                              vm=VirtualMachine(cpu_usage=3.5, mem_usage=500, storage_usage=2000)).unwrap()
+
+    S.insert_virtual_link(target_edge=edge_id, vl=VirtualLink(bandwidth_usage=2000)).unwrap()
 
     print(S)
