@@ -1,6 +1,4 @@
 from result import Result, Ok, Err, is_ok
-from VirtualMachine import VirtualMachine
-from VirtualLink import VirtualLink
 
 uid = int
 
@@ -50,33 +48,39 @@ class Host:
 
 
 class Link:
-    _uid: uid = 0
     bandwidth_avail: float
     latency: float
     transfer_rate: float
 
     def __init__(self, bandwidth_avail: float, latency: float, transfer_rate: float) -> None:
-        self.uid = uid
         self.bandwidth_avail = bandwidth_avail
         self.latency = latency
         self.transfer_rate = transfer_rate
 
-    def allocate_resources(self, bandwidth: float) -> Result[uid, str]:
+    def allocate_resources(self, bandwidth: float) -> Result[None, str]:
         """
         decrease available bandwidth of the Link, return uid or error message if resources not available
         """
         if self.bandwidth_avail < bandwidth:
-            return Err(f'resources not available on link {self._uid}')
+            return Err(f'resources not available on link')
 
         self.bandwidth_avail -= bandwidth
 
-        return Ok(self._uid)
+        return Ok(None)
+
+    def free_resources(self, bandwidth: float) -> None:
+        """
+        increase available resources on the link, return None
+        :param bandwidth:
+        :return:
+        """
+        self.bandwidth_avail += bandwidth
 
 
 # maybe have like a substrate factory that can make substrates with networkX?
 class Substrate:
-    nodes: dict[int, Host] = {}
-    edges: dict[int, Link] = {}
+    nodes: dict[uid, Host] = {}  # host uid links to Host object
+    edges: dict[(uid, uid), Link] = {}  # tuple of host uid links to Link object
 
     uid_counter = 0
 
@@ -84,15 +88,13 @@ class Substrate:
         self.uid_counter += 1
         return self.uid_counter
 
-    def add_host(self, host: Host) -> uid:
+    def add_host(self, host: Host) -> None:
         """
-        add a host (node) to the substrate network and return host uid
+        add a host (node) to the substrate network
         """
         uid = self._get_uid()
         host.uid = uid
         self.nodes[uid] = host
-
-        return uid
 
     def _get_host_by_id(self, host_uid: int) -> Result[Host, str]:
         """
@@ -103,97 +105,30 @@ class Substrate:
 
         return Ok(self.nodes.get(host_uid))
 
-    def add_link(self, link: Link) -> uid:
+    def add_link(self, source_host: uid, destination_host: uid, link: Link) -> None:
         """
-        add a link (edge) to the substrate network and return link id
+        add a Link object between source_host and destination_host
+        :param source_host:
+        :param destination_host:
+        :param link:
+        :return:
         """
-        uid = self._get_uid()
-        link.uid = uid
-        self.edges[uid] = link
+        self.edges[(source_host, destination_host)] = link
 
-        return uid
+    def _get_link_by_ids(self, source_host: uid, destination_host: uid) -> Result[Link, str]:
+        """
+        return a Link object between source_host and destination_host,
+        or an error message if the link is not found
+        :param source_host:
+        :param destination_host:
+        :return:
+        """
+        link = self.edges.get((source_host, destination_host))
 
-    def _get_link_by_id(self, link_uid: int) -> Result[Link, str]:
-        """
-        get a link by uid, return Link object or error message if link not found
-        """
-        if self.edges.get(link_uid) is None:
-            return Err(f'link {link_uid} not found')
+        if link:
+            return Ok(link)
 
-        return Ok(self.edges.get(link_uid))
-
-    def insert_virtual_machine(self, target_host: uid, vm: VirtualMachine) -> Result[None, str]:
-        """
-        allocate the resources on a host for a virtual machine and return None or fail with an error message
-        """
-        host = self._get_host_by_id(target_host)  # Host or error message
-        if is_ok(host):
-            match host.ok_value.allocate_resources(
-                vm.cpu_usage,
-                vm.mem_usage,
-                vm.storage_usage
-            ):
-                case Ok():
-                    vm.uid = self._get_uid()
-                    vm.host_id = target_host
-                    return Ok(None)
-                case Err(e):
-                    return Err(e)
-
-        return Err(host.err_value)
-
-    # this too might lead to users freeing more resources than were initially available on the host
-    def remove_virtual_machine(self, target_host: uid, vm: VirtualMachine) -> None:
-        """
-        free the resources on a host for a virtual machine
-        """
-        host = self._get_host_by_id(target_host)
-        if is_ok(host):
-            host.ok_value.free_resources(
-                vm.cpu_usage,
-                vm.mem_usage,
-                vm.storage_usage
-            )
-
-    def insert_virtual_link(self, target_edge: uid, vl: VirtualLink) -> Result[None, str]:
-        """
-        allocate the resources on a link for a virtual link and return None or fail with an error message
-        """
-        link = self._get_link_by_id(target_edge)
-
-        if is_ok(link):
-            link = link.ok_value
-            match link.allocate_resources(vl.bandwidth_usage):
-                case Ok():
-                    vl.latency = link.latency
-                    vl.transfer_rate = link.transfer_rate
-                    return Ok(None)
-                case Err(e):
-                    return Err(e)
-
-        return Err(link.err_value)
-
-    # this too might lead to users freeing more resources than were initially available on the link
-    def remove_virtual_link(self, target_edge: uid, vl: VirtualLink) -> None:
-        """
-        free the resources on a link for a virtual link
-        """
-        link = self._get_link_by_id(target_edge)
-        if is_ok(link):
-            link.ok_value.free_resources(vl.bandwidth_usage)
+        Err(f'link not found')
 
     def __str__(self):
         return f"hosts in network: {len(self.nodes)}, links in network: {len(self.edges)}"
-
-
-if __name__ == '__main__':
-    S = Substrate()
-    host_id = S.add_host(Host(cpu_avail=4.5, mem_avail=16000, storage_avail=20000))
-    edge_id = S.add_link(Link(bandwidth_avail=5000, latency=200, transfer_rate=1000000))
-
-    S.insert_virtual_machine(target_host=host_id,
-                             vm=VirtualMachine(cpu_usage=3.5, mem_usage=500, storage_usage=2000)).unwrap()
-
-    S.insert_virtual_link(target_edge=edge_id, vl=VirtualLink(bandwidth_usage=2000)).unwrap()
-
-    print(S)
